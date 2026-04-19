@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>祟り家からの逃走</title>
+<meta property="og:title" content="祟り家からの逃走">
+<meta property="og:description" content="呪われた旧家から脱出せよ。和風ホラーサバイバルゲーム。">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:#0a0a0f;color:#c8b89a;min-height:100vh;overflow-x:hidden}
+#game{max-width:680px;margin:0 auto;padding:12px}
+#title-screen,#game-screen,#gameover-screen,#clear-screen{display:none}
+h1{font-size:28px;font-weight:500;color:#c8b89a;text-align:center;letter-spacing:4px;text-shadow:0 0 20px rgba(200,100,50,0.5)}
+.sub{font-size:13px;color:#8a7060;text-align:center;margin:6px 0 20px;letter-spacing:2px}
+#map{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0}
+.room-btn{background:#12100e;border:1px solid #3a2a1a;border-radius:6px;padding:12px 8px;cursor:pointer;text-align:center;font-size:13px;color:#9a8070;transition:all 0.2s;position:relative}
+.room-btn:hover:not(:disabled){background:#1e160e;border-color:#6a4a2a;color:#c8b89a}
+.room-btn.current{border-color:#8a5a2a;background:#1e1208;color:#e8c890}
+.room-btn.danger{border-color:#8a2a2a;background:#180a0a}
+.room-btn:disabled{opacity:0.4;cursor:default}
+.room-icon{font-size:18px;margin-bottom:4px}
+#status-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0}
+.stat{background:#0e0c0a;border:1px solid #2a1a0a;border-radius:6px;padding:8px;text-align:center}
+.stat-label{font-size:11px;color:#6a5a4a;margin-bottom:4px;letter-spacing:1px}
+.stat-bar{height:8px;background:#1a1208;border-radius:4px;overflow:hidden;margin-top:4px}
+.stat-fill{height:100%;border-radius:4px;transition:width 0.4s}
+.hp-fill{background:#8a3a2a}
+.st-fill{background:#2a6a4a}
+.curse-fill{background:#6a2a8a}
+.stat-val{font-size:16px;font-weight:500}
+#log{background:#0a0808;border:1px solid #2a1a1a;border-radius:8px;padding:12px;min-height:100px;max-height:140px;overflow-y:auto;font-size:13px;line-height:1.8;margin:8px 0}
+.log-line{color:#9a8070;border-bottom:1px solid #1a1010;padding:2px 0}
+.log-line.important{color:#c8a060}
+.log-line.danger{color:#c84040}
+.log-line.success{color:#60a860}
+#actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.act-btn{background:#12100e;border:1px solid #3a2a1a;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;color:#9a8070;text-align:center}
+.act-btn:hover:not(:disabled){background:#1e160e;border-color:#6a4a2a;color:#c8b89a}
+.act-btn:disabled{opacity:0.3;cursor:default}
+#inventory{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;min-height:34px}
+.item-badge{background:#1a1208;border:1px solid #4a3a1a;border-radius:4px;padding:4px 10px;font-size:12px;color:#b89060}
+#spirit-pos{font-size:12px;color:#6a3a3a;text-align:center;margin:4px 0}
+.btn-main{background:#2a1a0a;border:1px solid #6a4a2a;border-radius:8px;padding:12px 28px;cursor:pointer;font-size:15px;color:#c8a060;display:block;margin:12px auto;letter-spacing:2px}
+.btn-main:hover{background:#3a2a0a;border-color:#8a6a3a}
+#gameover-screen h2,#clear-screen h2{text-align:center;font-size:24px;font-weight:500;margin:20px 0 12px;letter-spacing:3px}
+#gameover-screen h2{color:#c84040}
+#clear-screen h2{color:#c8a060}
+.end-msg{text-align:center;font-size:13px;color:#8a7060;line-height:2;margin:10px 0 20px;white-space:pre-line}
+#turn-count{font-size:12px;color:#5a4a3a;text-align:right;margin:2px 0}
+</style>
+</head>
+<body>
+<div id="game">
+<div id="title-screen">
+  <div style="text-align:center;padding:40px 0 20px">
+    <div style="font-size:36px;margin-bottom:8px">&#9765;</div>
+    <h1>祟り家からの逃走</h1>
+    <p class="sub">&#12288;和風ホラーサバイバル&#12288;</p>
+    <div style="font-size:13px;color:#6a5a4a;line-height:2;margin:16px 0 28px">
+      呪われた旧家に迷い込んだあなた。<br>
+      徘徊する霊を避け、三つの鍵を集めて<br>
+      正門から脱出せよ。
+    </div>
+    <button class="btn-main" onclick="startGame()">&#12288;入る&#12288;</button>
+    <div style="font-size:12px;color:#4a3a2a;margin-top:16px">
+      【操作】部屋を選んで移動／行動ボタンで探索・隠れる
+    </div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="font-size:14px;color:#7a6a5a;letter-spacing:2px">&#9765; 祟り家</div>
+    <div id="turn-count"></div>
+  </div>
+  <div id="status-bar">
+    <div class="stat"><div class="stat-label">体力</div><div class="stat-val" id="hp-val">100</div><div class="stat-bar"><div class="stat-fill hp-fill" id="hp-bar" style="width:100%"></div></div></div>
+    <div class="stat"><div class="stat-label">体力消耗</div><div class="stat-val" id="st-val">100</div><div class="stat-bar"><div class="stat-fill st-fill" id="st-bar" style="width:100%"></div></div></div>
+    <div class="stat"><div class="stat-label">呪い度</div><div class="stat-val" id="curse-val">0</div><div class="stat-bar"><div class="stat-fill curse-fill" id="curse-bar" style="width:0%"></div></div></div>
+  </div>
+  <div id="inventory"></div>
+  <div id="spirit-pos"></div>
+  <div id="map"></div>
+  <div id="log"></div>
+  <div id="actions"></div>
+</div>
+
+<div id="gameover-screen">
+  <div style="text-align:center;padding:30px 0">
+    <div style="font-size:40px;margin-bottom:8px">&#9760;</div>
+    <h2>成仏できず…</h2>
+    <p class="end-msg" id="gameover-msg"></p>
+    <button class="btn-main" onclick="showTitle()">もう一度</button>
+  </div>
+</div>
+
+<div id="clear-screen">
+  <div style="text-align:center;padding:30px 0">
+    <div style="font-size:40px;margin-bottom:8px">&#10024;</div>
+    <h2>脱出成功！</h2>
+    <p class="end-msg" id="clear-msg"></p>
+    <button class="btn-main" onclick="showTitle()">もう一度</button>
+  </div>
+</div>
+</div>
+
+<script>
+const ROOMS=[
+  {id:0,name:'土間',icon:'🚪',desc:'入口。埃っぽい土間。',exits:[1,3]},
+  {id:1,name:'居間',icon:'🏮',desc:'古い居間。行灯が揺れる。',exits:[0,2,4]},
+  {id:2,name:'台所',icon:'🔪',desc:'錆びた包丁が転がる台所。',exits:[1,5]},
+  {id:3,name:'蔵',icon:'📦',desc:'古い蔵。何かが眠っている。',exits:[0,6]},
+  {id:4,name:'仏間',icon:'⛩',desc:'仏壇に蝋燭が灯っている。',exits:[1,5,7]},
+  {id:5,name:'縁側',icon:'🌙',desc:'月明かりが差し込む縁側。',exits:[2,4,8]},
+  {id:6,name:'納屋',icon:'🪓',desc:'農具が乱雑に積まれた納屋。',exits:[3,7]},
+  {id:7,name:'奥座敷',icon:'🎎',desc:'不気味な人形が並ぶ座敷。',exits:[4,6,8]},
+  {id:8,name:'正門',icon:'⛩',desc:'脱出口。鍵が三つ必要だ。',exits:[5,7]}
+];
+const ITEMS_BY_ROOM={
+  1:{name:'古文書',key:false,desc:'呪いの解呪法が記されている。'},
+  2:{name:'台所の鍵',key:true,desc:'錆びた鍵。'},
+  3:{name:'蔵の鍵',key:true,desc:'重厚な鍵。'},
+  4:{name:'御札',key:false,desc:'強力な御札。霊を一時的に封じる。'},
+  6:{name:'納屋の鍵',key:true,desc:'木製の鍵。'},
+  7:{name:'人形の目',key:false,desc:'気味悪い。呪い度が上がりそうだ…'}
+};
+let G={};
+function showTitle(){
+  ['title-screen','game-screen','gameover-screen','clear-screen'].forEach(id=>{
+    document.getElementById(id).style.display='none'
+  });
+  document.getElementById('title-screen').style.display='block';
+}
+function startGame(){
+  G={hp:100,stamina:100,curse:0,pos:0,spiritPos:7,turn:0,items:[],roomSearched:new Set(),hiding:false,keysCollected:0};
+  document.getElementById('title-screen').style.display='none';
+  document.getElementById('game-screen').style.display='block';
+  addLog('古い家の土間に立っている。遠くから何かの気配がする…','important');
+  render();
+}
+function addLog(msg,cls=''){
+  const log=document.getElementById('log');
+  const div=document.createElement('div');
+  div.className='log-line'+(cls?' '+cls:'');
+  div.textContent=msg;
+  log.appendChild(div);
+  log.scrollTop=log.scrollHeight;
+  if(log.children.length>30) log.removeChild(log.firstChild);
+}
+function moveSpirit(){
+  const room=ROOMS[G.spiritPos];
+  if(G.hiding&&G.pos!==G.spiritPos){addLog('霊の気配が近い…(隠れている)');return;}
+  const nextRooms=room.exits.filter(id=>{if(Math.random()<0.7)return true;return id===G.pos;});
+  const toward=nextRooms.includes(G.pos)&&Math.random()<0.5?G.pos:nextRooms[Math.floor(Math.random()*nextRooms.length)];
+  G.spiritPos=toward;
+}
+function render(){
+  G.turn++;
+  document.getElementById('turn-count').textContent=G.turn+'ターン目';
+  document.getElementById('hp-val').textContent=G.hp;
+  document.getElementById('hp-bar').style.width=G.hp+'%';
+  document.getElementById('st-val').textContent=G.stamina;
+  document.getElementById('st-bar').style.width=G.stamina+'%';
+  document.getElementById('curse-val').textContent=G.curse;
+  document.getElementById('curse-bar').style.width=Math.min(G.curse,100)+'%';
+  const inv=document.getElementById('inventory');
+  inv.innerHTML='';
+  if(G.items.length===0){inv.innerHTML='<span style="font-size:12px;color:#4a3a2a">持ち物なし</span>';}
+  else{G.items.forEach(it=>{const b=document.createElement('span');b.className='item-badge';b.textContent=it;inv.appendChild(b);});}
+  const spiritRoom=ROOMS[G.spiritPos];
+  const adj=ROOMS[G.pos].exits.includes(G.spiritPos);
+  const sEl=document.getElementById('spirit-pos');
+  if(G.spiritPos===G.pos){sEl.innerHTML='<span style="color:#c84040">&#9760; 霊がここにいる！</span>';}
+  else if(adj){sEl.innerHTML='<span style="color:#8a4a2a">&#9888; 霊の気配が隣の部屋から…（'+spiritRoom.name+'）</span>';}
+  else{sEl.innerHTML='<span style="color:#4a3a2a">霊は遠い…（'+spiritRoom.name+'）</span>';}
+  const mapEl=document.getElementById('map');
+  mapEl.innerHTML='';
+  ROOMS.forEach(room=>{
+    const btn=document.createElement('button');
+    btn.className='room-btn'+(room.id===G.pos?' current':'')+(room.id===G.spiritPos?' danger':'');
+    const accessible=room.id===G.pos||ROOMS[G.pos].exits.includes(room.id);
+    btn.disabled=!accessible||room.id===G.pos;
+    btn.innerHTML='<div class="room-icon">'+room.icon+'</div>'+room.name+(room.id===G.pos?'<br><span style="font-size:10px;color:#8a6a3a">●今ここ</span>':'');
+    if(room.id!==G.pos&&accessible){btn.onclick=()=>moveTo(room.id);}
+    mapEl.appendChild(btn);
+  });
+  const actEl=document.getElementById('actions');
+  actEl.innerHTML='';
+  const acts=[
+    {label:'🔍 探索する',fn:searchRoom,disabled:G.roomSearched.has(G.pos)},
+    {label:G.hiding?'👁 姿を現す':'🙈 隠れる',fn:toggleHide,disabled:false},
+    {label:'📜 御札を使う',fn:useOfuda,disabled:!G.items.includes('御札')||G.spiritPos!==G.pos},
+    {label:'🚪 脱出する',fn:tryEscape,disabled:G.pos!==8}
+  ];
+  acts.forEach(a=>{
+    const b=document.createElement('button');b.className='act-btn';b.textContent=a.label;b.disabled=a.disabled;b.onclick=a.fn;actEl.appendChild(b);
+  });
+}
+function moveTo(id){
+  G.hiding=false;G.pos=id;G.stamina=Math.max(0,G.stamina-10);
+  const room=ROOMS[id];
+  addLog('「'+room.name+'」に移動した。'+room.desc);
+  moveSpirit();
+  if(G.spiritPos===G.pos){const dmg=G.items.includes('古文書')?10:20;G.hp=Math.max(0,G.hp-dmg);G.curse=Math.min(100,G.curse+15);addLog('霊に遭遇した！体力が'+dmg+'減少。呪い度が上昇…','danger');}
+  if(G.stamina<=0){G.hp=Math.max(0,G.hp-5);addLog('疲弊で体力が減少している…','danger');}
+  checkDeath();if(G.hp>0)render();
+}
+function searchRoom(){
+  if(G.roomSearched.has(G.pos)){addLog('もう調べた。');return;}
+  G.roomSearched.add(G.pos);G.stamina=Math.max(0,G.stamina-15);
+  const item=ITEMS_BY_ROOM[G.pos];
+  if(item){G.items.push(item.name);if(item.key)G.keysCollected++;addLog('「'+item.name+'」を手に入れた！'+item.desc,'success');if(item.name==='人形の目'){G.curse=Math.min(100,G.curse+20);addLog('呪い度が大幅に上昇した…','danger');}}
+  else{addLog('何も見つからなかった…');}
+  moveSpirit();
+  if(G.spiritPos===G.pos){G.hp=Math.max(0,G.hp-15);G.curse=Math.min(100,G.curse+10);addLog('探索中に霊が現れた！体力-15、呪い上昇','danger');}
+  checkDeath();if(G.hp>0)render();
+}
+function toggleHide(){
+  G.hiding=!G.hiding;
+  if(G.hiding){G.stamina=Math.max(0,G.stamina-5);addLog('息を潜めて隠れた。霊が来ても気づかれにくい。');}
+  else{addLog('物陰から姿を現した。');}
+  moveSpirit();render();
+}
+function useOfuda(){
+  if(!G.items.includes('御札')||G.spiritPos!==G.pos)return;
+  G.items=G.items.filter(i=>i!=='御札');
+  G.spiritPos=ROOMS[G.spiritPos].exits[0];
+  addLog('御札を使った！霊が退散した！','success');render();
+}
+function tryEscape(){
+  if(G.pos!==8)return;
+  if(G.keysCollected<3){addLog('正門には鍵が三つ必要だ。あと'+(3-G.keysCollected)+'つ足りない…','important');return;}
+  document.getElementById('game-screen').style.display='none';
+  document.getElementById('clear-screen').style.display='block';
+  document.getElementById('clear-msg').textContent=G.turn+'ターンで脱出成功！\n体力：'+G.hp+' 呪い度：'+G.curse+'\n'+(G.curse<30?'呪いに打ち勝ち完全勝利！':G.curse<70?'なんとか脱出できた…':'呪いを引きずったまま逃げ出した…');
+}
+function checkDeath(){
+  if(G.hp<=0){document.getElementById('game-screen').style.display='none';document.getElementById('gameover-screen').style.display='block';document.getElementById('gameover-msg').textContent='体力が尽き、この家に魂を囚われてしまった…\n収集した鍵：'+G.keysCollected+'/3　経過ターン：'+G.turn;return;}
+  if(G.curse>=100){document.getElementById('game-screen').style.display='none';document.getElementById('gameover-screen').style.display='block';document.getElementById('gameover-msg').textContent='呪いに完全に取り憑かれ、意識が消えていった…\n収集した鍵：'+G.keysCollected+'/3　経過ターン：'+G.turn;}
+}
+showTitle();
+</script>
+</body>
+</html>
